@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Tic Tac Toe Game</title>
+        <style>
+            /* Styles for the game board */
+            body {
+                background-color: rgb(43, 42, 42);
+                color: white;
+                font-family: Arial, sans-serif;
+                text-align: center;
+                margin: 0;
+                padding: 0;
+            }
+
+            h1 {
+                margin-top: 20px;
+            }
+
+            .board {
+                margin: 20px auto;
+                width: 300px;
+                border-collapse: collapse;
+            }
+
+            .board td {
+                width: 100px;
+                height: 100px;
+                border: 2px solid #12f416;
+                font-size: 40px;
+                cursor: pointer;
+            }
+
+            .board td:hover {
+                background-color: #4f4f4f;
+            }
+
+            /* Styles for players */
+            .player-x {
+                color: #ff6347; /* Red */
+            }
+
+            .player-o {
+                color: #4682b4; /* Blue */
+            }
+
+            /* Styles for winner and draw messages */
+            .message {
+                font-weight: bold;
+                margin-top: 20px;
+            }
+
+            .winner {
+                color: rgb(28, 243, 28);
+            }
+
+            .draw {
+                color: rgb(255, 255, 255);
+            }
+
+            /* Style for reset button */
+            #reset-btn {
+                margin-top: 20px;
+                padding: 10px 20px;
+                font-size: 16px;
+                font-weight: bold;
+                background-color: #4CAF50; /* Green */
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+
+            /* Styles for level buttons */
+            .level-btn {
+                margin: 10px;
+                padding: 10px 20px;
+                font-size: 16px;
+                font-weight: bold;
+                background-color: #3498db; /* Blue */
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+
+            /* Style for selected level button */
+            .selected-level {
+                background-color: #2ecc71 !important; /* Green */
+            }
+            .board {
+                position: relative; /* Add this line */
+                margin: 20px auto;
+                width: 300px;
+                height: 300px; /* Ensure the board has a fixed height */
+                border-collapse: collapse;
+            }
+
+            /* Style for the winning line */
+            .line {
+                position: absolute;
+                width: 100%;
+                height: 10px;
+                background-color: rgb(220, 231, 14);
+                transform: translate(-50%, -50%);
+            }
+        </style>
+    </head>
+    <body>
+
+        <h1>Tic Tac Toe Game</h1>
+        <table class="board">
+            <tr>
+                <td class="cell" data-row="0" data-col="0"></td>
+                <td class="cell" data-row="0" data-col="1"></td>
+                <td class="cell" data-row="0" data-col="2"></td>
+            </tr>
+            <tr>
+                <td class="cell" data-row="1" data-col="0"></td>
+                <td class="cell" data-row="1" data-col="1"></td>
+                <td class="cell" data-row="1" data-col="2"></td>
+            </tr>
+            <tr>
+                <td class="cell" data-row="2" data-col="0"></td>
+                <td class="cell" data-row="2" data-col="1"></td>
+                <td class="cell" data-row="2" data-col="2"></td>
+            </tr>
+        </table>
+
+        <div>
+            <button class="level-btn" data-level="easy">Level 1 - Easy</button>
+            <button class="level-btn" data-level="medium">Level 2 - Medium</button>
+            <button class="level-btn" data-level="hard">Level 3 - Hard</button>
+        </div>
+
+        <div id="message" class="message"></div>
+        <button id="reset-btn">Reset Game</button>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const cells = document.querySelectorAll('.cell');
+                const message = document.getElementById('message');
+                const resetBtn = document.getElementById('reset-btn');
+                const levelButtons = document.querySelectorAll('.level-btn');
+                let currentPlayer = 'X'; // Start with X player
+                let gameEnded = false;
+                let aiLevel = 'easy'; // Default AI level
+
+                cells.forEach(cell => {
+                    cell.addEventListener('click', () => {
+                        if (!gameEnded && cell.textContent === '') {
+                            // Log the player's move
+                            const row = cell.getAttribute('data-row');
+                            const col = cell.getAttribute('data-col');
+                            console.log("Player's move: (" + row + ", " + col + ")");
+                            // Player's move
+                            cell.textContent = currentPlayer;
+                            // Check for winner or draw
+                            if (checkGameStatus()) {
+                                return;
+                            }
+                            // Switch turns
+                            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                            // AI's move (if it's O's turn)
+                            if (currentPlayer === 'O') {
+                                makeAIMove();
+                            }
+                        }
+                    });
+                });
+
+                levelButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        // Remove the 'selected-level' class from all buttons
+                        levelButtons.forEach(btn => btn.classList.remove('selected-level'));
+
+                        aiLevel = button.dataset.level;
+                        button.classList.add('selected-level'); // Add 'selected-level' class to the clicked button
+                        resetGame();
+                    });
+                });
+
+                resetBtn.addEventListener('click', () => {
+                    resetGame();
+                });
+
+                function resetGame() {
+                    // Clear all cells, reset message, and game state
+                    cells.forEach(cell => {
+                        cell.textContent = '';
+                    });
+                    // Remove any winning line drawn
+                    const winningLine = document.querySelector('.line');
+                    if (winningLine) {
+                        winningLine.parentNode.removeChild(winningLine);
+                    }
+                    message.textContent = '';
+                    message.classList.remove('winner', 'draw');
+                    gameEnded = false;
+                    currentPlayer = 'X';
+                }
+
+
+
+                function checkGameStatus() {
+                    let winner = checkWinner('X');
+                    if (winner) {
+                        showMessage('Player X wins!', 'winner');
+                        drawLine(winner); // Draw line for the winner
+                        gameEnded = true;
+                        return true;
+                    }
+                    winner = checkWinner('O');
+                    if (winner) {
+                        showMessage('Player O wins!', 'winner');
+                        drawLine(winner); // Draw line for the winner
+                        gameEnded = true;
+                        return true;
+                    }
+                    if (checkDraw()) {
+                        showMessage('It\'s a draw!', 'draw');
+                        gameEnded = true;
+                        return true;
+                    }
+                    return false;
+                }
+
+                function checkWinner(player) {
+                    const winPatterns = [
+                        [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+                        [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+                        [0, 4, 8], [2, 4, 6] // diagonals
+                    ];
+                    for (const pattern of winPatterns) {
+                        if (pattern.every(index => cells[index].textContent === player)) {
+                            return pattern; // Return the winning pattern
+                        }
+                    }
+                    return null; // No winner found
+                }
+
+                function checkDraw() {
+                    return [...cells].every(cell => cell.textContent !== '');
+                }
+
+                function showMessage(msg, className, winningCells) {
+                    message.textContent = msg;
+                    message.classList.add(className);
+
+                }
+
+                function makeAIMove() {
+                    if (aiLevel === 'easy') {
+                        makeRandomMove();
+                    } else if (aiLevel === 'medium') {
+                        // Implement medium level logic here
+                        makeMediumMove();
+                    } else if (aiLevel === 'hard') {
+                        // Implement Minimax algorithm to determine AI's move
+                        let bestScore = -Infinity
+                        let bestMove;
+                        for (let i = 0; i < cells.length; i++) {
+                            if (cells[i].textContent === '') {
+                                cells[i].textContent = currentPlayer;
+                                let score = minimax(cells, 0, false);
+                                console.log("Move: " + i + ", Score: " + score);
+                                cells[i].textContent = '';
+                                if (score > bestScore) {
+                                    bestScore = score;
+                                    bestMove = i;
+                                }
+                            }
+                        }
+                        console.log("AIs Move: " + bestMove);
+                        cells[bestMove].textContent = currentPlayer;
+                    }
+                    // Check for winner or draw after AI's move
+                    checkGameStatus();
+                    // Switch turns
+                    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                }
+
+                function minimax(board, depth, isMaximizing) {
+                    if (checkWinner('X')) {
+                        return -10 + depth;
+                    } else if (checkWinner('O')) {
+                        return 10 - depth;
+                    } else if (checkDraw()) {
+                        return 0;
+                    }
+
+                    if (isMaximizing) {
+                        let bestScore = -Infinity;
+                        for (let i = 0; i < board.length; i++) {
+                            if (board[i].textContent === '') {
+                                board[i].textContent = 'O';
+                                let score = minimax(board, depth + 1, false);
+                                board[i].textContent = '';
+                                bestScore = Math.max(score, bestScore);
+                            }
+                        }
+                        return bestScore;
+                    } else {
+                        let bestScore = Infinity;
+                        for (let i = 0; i < board.length; i++) {
+                            if (board[i].textContent === '') {
+                                board[i].textContent = 'X';
+                                let score = minimax(board, depth + 1, true);
+                                board[i].textContent = '';
+                                bestScore = Math.min(score, bestScore);
+                            }
+                        }
+                        return bestScore;
+                    }
+                }
+
+                function makeRandomMove() {
+                    // Make a random move for the easy and medium levels
+                    const availableCells = Array.from(cells).filter(cell => cell.textContent === '');
+                    const randomIndex = Math.floor(Math.random() * availableCells.length);
+                    const randomCell = availableCells[randomIndex];
+                    randomCell.textContent = currentPlayer;
+                    console.log("AI's Move (Random): " + randomCell.getAttribute('data-row') + ", " + randomCell.getAttribute('data-col')); // Log AI's move
+                }
+
+                function makeMediumMove() {
+                    const availableCornerCells = Array.from(cells).filter(cell => cell.textContent === '' && [0, 2, 6, 8].includes(parseInt(cell.getAttribute('data-row')) * 3 + parseInt(cell.getAttribute('data-col'))));
+                    if (availableCornerCells.length > 0) {
+                        // If there are available corner cells, prioritize choosing from them
+                        const randomIndex = Math.floor(Math.random() * availableCornerCells.length);
+                        const randomCell = availableCornerCells[randomIndex];
+                        randomCell.textContent = currentPlayer;
+                        console.log("AI's Move (Medium): " + randomCell.getAttribute('data-row') + ", " + randomCell.getAttribute('data-col')); // Log AI's move
+                    } else {
+                        // If no corner cells are available, make a random move
+                        const availableCells = Array.from(cells).filter(cell => cell.textContent === '');
+                        const randomIndex = Math.floor(Math.random() * availableCells.length);
+                        const randomCell = availableCells[randomIndex];
+                        randomCell.textContent = currentPlayer;
+                        console.log("AI's Move (Medium): " + randomCell.getAttribute('data-row') + ", " + randomCell.getAttribute('data-col')); // Log AI's move
+                    }
+                }
+
+
+
+                function sendLog(message) {
+                    // Send log message to server-side script
+                    fetch('log.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: 'log=' + encodeURIComponent(message),
+                    })
+                            .then(response => response.text())
+                            .then(data => {
+                                console.log(data);
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                            });
+                }
+                function drawLine(winningPattern) {
+                    const line = document.createElement('div');
+                    line.className = 'line';
+                    // Determine the first winning index to decide the orientation
+                    const firstWinIndex = winningPattern[0];
+
+                    if ((winningPattern.join('') === '012' || winningPattern.join('') === '345' || winningPattern.join('') === '678')) { // Horizontal Lines
+                        const row = Math.floor(firstWinIndex / 3);
+                        line.style.width = '300px'; // Full grid width
+                        line.style.height = '4px'; // Line thickness
+                        line.style.top = `${row * 100 + 50}px`; // Centered in the winning row
+                        line.style.left = '50%'; // Centered
+                        line.style.transform = 'translateX(-50%)'; // Adjust for centering
+                    } else if (winningPattern.join('') === '036' || winningPattern.join('') === '147' || winningPattern.join('') === '258') { // Vertical Lines
+                        const col = firstWinIndex % 3;
+                        line.style.width = '4px'; // Line thickness
+                        line.style.height = '300px'; // Full grid height
+                        line.style.left = `${col * 100 + 50}px`; // Centered in the winning column
+                        line.style.top = '50%'; // Centered
+                        line.style.transform = 'translateY(-50%)'; // Adjust for centering
+                    } else if (winningPattern.join('') === '246') { // Diagonal \
+                        line.style.width = '4px';
+                        line.style.height = '424px'; // Slightly longer to cover corner to corner
+                        line.style.top = '50%';
+                        line.style.left = '50%';
+                        line.style.transform = 'translate(-50%, -50%) rotate(45deg)';
+                    } else if (winningPattern.join('') === '048') { // Diagonal /
+                        line.style.width = '4px';
+                        line.style.height = '424px'; // Slightly longer to cover corner to corner
+                        line.style.top = '50%';
+                        line.style.left = '50%';
+                        line.style.transform = 'translate(-50%, -50%) rotate(-45deg)';
+                    }
+                    document.querySelector('.board').appendChild(line);
+                }
+
+            });
+        </script>
+    </body>
+</html>
